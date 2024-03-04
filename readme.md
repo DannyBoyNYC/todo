@@ -46,7 +46,7 @@ Of course, we’d love to add user accounts, Markdown support, due dates, taggin
 </header>
 ```
 
-The <h1> is perhaps a little controversial. I often prefer “saving” that for whatever the main focus of the page is. But in this case since the name of the app is doing that for us, it kinda works. Otherwise a <div> or whatever is fine here.
+The `<h1>` is perhaps a little controversial. I often prefer “saving” that for whatever the main focus of the page is. But in this case since the name of the app is doing that for us, it kinda works. Otherwise a `<div>` or whatever is fine here.
 
 ## Form
 
@@ -60,7 +60,7 @@ The <h1> is perhaps a little controversial. I often prefer “saving” that for
 </form>
 ```
 
-The <form> feels vitally important to me. Already in poking around at other web-based to-do apps I’ve seen some inaccessible forms which feels sad to me for something so simple.
+The `<form>` feels vitally important to me. Already in poking around at other web-based to-do apps I’ve seen some inaccessible forms which feels sad to me for something so simple.
 
 The trick is:
 
@@ -72,11 +72,11 @@ I like having the id on the form for getting our hands on it in JavaScript like 
 
 I added the class for styling. That’s just a habit of mine, preferring to style with mostly classes for fairly flat specificity. If you have your own methods or use Tailwind or whatever, you likely already know what you’re doing and godspeed.
 
-Notice my <label> doesn’t have a for attribute like you normally see, and that’s because the <input> is nested within it, which is a valid pattern. I like the pattern as it’s one less thing to screw up.
+Notice my <label> doesn’t have a for attribute like you normally see, and that’s because the `<input>` is nested within it, which is a valid pattern. I like the pattern as it’s one less thing to screw up.
 
 The actual text of the label we’re hiding, as-per the design. That’s also a little controversial, but I think is generally fine. It’s fairly clear what this form does, and if you were using a screen reader, the actual label text is still there even if we do hide it visually with CSS.
 
-Last, the <button> is a lone wolf within the form, and that’ll make it be a submit button automatically. We could use an <input type="submit" /> as well, which is fine, but I like buttons. You can put more stuff in them and their type is implied in simple situations like this.
+Last, the <button> is a lone wolf within the form, and that’ll make it be a submit button automatically. We could use an `<input type="submit" />` as well, which is fine, but I like buttons. You can put more stuff in them and their type is implied in simple situations like this.
 
 ## List
 
@@ -86,9 +86,9 @@ The interesting thing about the list is that it’s going to be dynamically gene
 <ol id="todo-list" class="todo-list"></ol>
 ```
 
-Again using the ol’ id/class one two punch there. I feel like an ordered list is appropriate somehow. Especially if we eventually add sorting of the list, then the order is very intentional and deserves that treatment. And the fact that we’re using a list at all feels right. Lists announce themselves as such in screen readers, including how many items are in the list, which may be a useful bit of information. That’s more than a bunch of <div>s would do!
+Again using the ol’ id/class one two punch there. I feel like an ordered list is appropriate somehow. Especially if we eventually add sorting of the list, then the order is very intentional and deserves that treatment. And the fact that we’re using a list at all feels right. Lists announce themselves as such in screen readers, including how many items are in the list, which may be a useful bit of information. That’s more than a bunch of `<div>`s would do!
 
-The each list item becomes a <li>, but the extra stuff in there is going to beef it up. Let’s pause on the re-ordering and edit-ability for now and just focus on the item and the ability to complete it.
+The each list item becomes a `<li>`, but the extra stuff in there is going to beef it up. Let’s pause on the re-ordering and edit-ability for now and just focus on the item and the ability to complete it.
 
 ```html
 <li id="something-unique">
@@ -101,9 +101,9 @@ The each list item becomes a <li>, but the extra stuff in there is going to beef
 
 I figure each list item will have a unique ID on it. Actions taken on it will need to be unique to that item so that’ll be the main identifier. Maybe we don’t need it yet but we probably will. No class name here as I feel like selecting .todo-list > li is probably fine. We could always add it.
 
-Our design makes the interactive element to complete a to-do look like a checkbox, and we could use an <input type="checkbox" />, but I’m kinda torn. This is where visual design and interactive design collide. We didn’t think out the interaction of completing a to-do all the way. What happens when you click that thing? Does it instantly get marked as done? Then disappear? Maybe it instantly gets marked as done but doesn’t disappear from the list. Or maybe there is like a 5-second countdown before it gets removed, so you have a chance to undo it in case it was a mistake.
+Our design makes the interactive element to complete a to-do look like a checkbox, and we could use an `<input type="checkbox" />`, but I’m kinda torn. This is where visual design and interactive design collide. We didn’t think out the interaction of completing a to-do all the way. What happens when you click that thing? Does it instantly get marked as done? Then disappear? Maybe it instantly gets marked as done but doesn’t disappear from the list. Or maybe there is like a 5-second countdown before it gets removed, so you have a chance to undo it in case it was a mistake.
 
-I kinda like the delay idea, which to me leads me more toward the path of using an <input type="checkbox"> for that with the very obvious two states. We could really do it either way. If we keep the <button>, we’d just need to make sure to use an aria-pressed role for the two states accordingly.
+I kinda like the delay idea, which to me leads me more toward the path of using an `<input type="checkbox">` for that with the very obvious two states. We could really do it either way. If we keep the `<button>`, we’d just need to make sure to use an aria-pressed role for the two states accordingly.
 
 Lastly, the position of that interactive element I have listed first here, before the text of the to-do, because that’s how it looks in the design. I could see the case being made though that in the HTML it should come after, just so that it reads nicer. Like as you tab through the list, you’d potentially hear the list item and then the button text offering to complete it. I’m not 100% sure what the right answer is there, so I think we’ll leave it first, because that’s the visual order, and I’ve heard it’s often best to match the source order and visual order.
 
