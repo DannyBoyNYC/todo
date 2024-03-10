@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 240 260"
+        class="svg-check site-logo"
+      >
+        <polyline class="cls-1" points="16 149 72 225 225 16" pathLength="1" />
+      </svg>
+      <h1>TODOs</h1>
+    </header>
+
+    <form id="todo-form" class="todo-form">
+      <label>
+        <span class="screen-reader-text">New TODO</span>
+        <input type="text" name="todo" />
+      </label>
+      <button id="button-add-todo" class="button-add-todo">
+        <svg viewBox="-20 -20 240 240" class="svg-plus">
+          <g>
+            <line x1="100" x2="100" y2="200" />
+            <line y1="100" x2="200" y2="100" />
+          </g>
+        </svg>
+      </button>
+    </form>
+
+    <ol id="todo-list" class="todo-list"></ol>
+
+    <footer>
+      <div class="todo-type-toggles">
+        <button aria-pressed="true">Active</button>
+        <button>Completed</button>
+      </div>
+      <div class="note">Double-click to edit a todo</div>
+    </footer>
+    <script src="scripts.js"></script>
+  </body>
+</html>

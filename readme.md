@@ -188,3 +188,336 @@ form.addEventListener("submit", (event) => {
   form.reset();
 });
 ```
+
+Two little tricks there.
+
+- The preventDefault is because we’re handling the submission in JavaScript so we’re preventing the browser from trying to perform the default action of going to a new page.
+- The reset bit is a nice little built-in UI for resetting the fields, so we don’t have to manually clear them ourselves. After we add a to-do, we don’t want that same text just sitting there in the input, it should go back to blank.
+
+We talked about all our data being one big JSON-able Array. So:
+
+```js
+let TODOs = [];
+```
+
+Then we can push into that array with the new data. We know the complete value will be false (we just added it!) and the title will be from the input.
+
+```js
+TODOs.push({
+  title: event.target[0].value,
+  complete: false,
+  id: self.crypto.randomUUID()
+});
+```
+
+That last bit is the browser giving us a unique identifier for free! We could used a UUID package for them, but we just don’t need to anymore. UThere is a practically-zero chance of ever getting a duplicate ever. Wikipedia:
+
+> only after generating 1 billion UUIDs every second for approximately 100 years would the probability of creating a single duplicate reach 50%.
+
+We’ve decided we’re just going to keep the data in localStorage for now, so after we’ve updated our TODOs Array, let’s dump it there.
+
+```js
+localStorage["data"] = JSON.stringify(TODOs);
+```
+
+Now that we’ve added the data, we know we’ll need to re-render the UI. But we’ll make a function for that in the next section, as obviously we’ll need to render the UI when we read the data when the page loads as well.
+
+## Reading data
+
+Getting the data out of localStorage is just as easy as writing to it: localStorage["data"]. That’ll have our JSON data in it. Probably. If we’ve written to it before. Just to be sure, let’s check before we parse out the data.
+
+```js
+let TODOs = [];
+
+if (localStorage["data"] !== null && localStorage["data"] !== undefined) {
+  TODOs = JSON.parse(localStorage["data"]);
+}
+```
+
+Just doing that once when the page is loaded will ensure our TODOs variable is loaded with what we got.
+
+Now we need to render the UI. We already figured out we need to do this in several situations:
+
+- When the page loads
+- When we add a new to-do
+- When we complete a to-do
+
+So let’s write it as a function so we can call it in all those situations.
+
+```js
+const list = document.querySelector("#todo-list");
+
+function buildUI() {
+  let HTML = ``;
+  TODOs.forEach((todo) => {
+    HTML += `
+      <li id="${todo.id}">
+       ${todo.title}
+       <button aria-label="Complete" class="button-complete">
+         <svg class="svg-check"><path d="..." /></svg>
+       </button>
+      </li>`;
+  });
+  list.innerHTML = HTML;
+}
+```
+
+We knows TODOs is an Array, so we loop over it, creating one big string of HTML with all the <li>s we’ll populate the <ol> with. (We’ll monkey with that SVG later.)
+
+I feel like the native JavaScript Template Literal is a good fit here. That’s the string within backticks. This allows us to write multi-line strings and interpolate variables inside. This is a place where there is lots of choice though! We could have used a native HTML `<template>` here, and perhaps we will in the future. We could have used a Handlebars template or the like. If you’re used to using a JavaScript framework, this is essentially a component and essentially the heart of whatever framework it is. Like the JSX of React.
+
+The downsides of a Template Literal is that you don’t get syntax highlighting usually. It’s not going to be linted or checked like your other HTML. Still, I like how simple the Template Literal is here, let’s keep it.
+
+## Completing a to-do
+
+In the HTML for each of our to-dos, remember we have a `<button>` designed for clicking to complete a to-do. But they don’t have click event handlers on them yet. We could put an onclick handler as an attribute right on them. That’s not the world’s worst idea, since they would automatically have interactivity applied to them the second they hit the DOM.
+
+Just go another way though: event delegation. We can just watch for clicks on the whole document, and if the event originated on that kind of button, then we can do our work.
+
+```js
+document.documentElement.addEventListener("click", (event) => {
+  if (event.target.classList.contains("button-complete")) {
+    // Click happened on a Complete button
+  }
+});
+```
+
+There is a little gotcha here though! We have an `<svg> `in our button, and it’s possible/likely the user clicks directly on that, so event.target will be that and not the `<button>`. So a smidge of CSS will help us:
+
+```css
+.svg-check {
+  display: block; /* prevent weird line-height issue */
+  pointer-events: none; /* stop click events from being target */
+}
+```
+
+Now we need to do the actual work. We can figure out exactly which to-do this is by the unique ID that we gave the `<li>` element. That will match the ID in our data. So we look through our data and find that ID, mark it as complete, and put the data back.
+
+```js
+document.documentElement.addEventListener("click", (event) => {
+  if (event.target.classList.contains("button-complete")) {
+    TODOs = TODOs.filter((todo) => todo.id !== event.target.parentElement.id);
+    localStorage["data"] = JSON.stringify(TODOs);
+    buildUI();
+  }
+});
+```
+
+That filter function is instantly removing the to-do with a matching ID from the data. Ultimately our plan is to update the complete value in our data, so that we can show a list of completed to-dos. But we’ve done a lot today already, so let’s revisit that when we do more with JavaScript. We’ve still got editing to do and such.
+
+This is a little akwardness of the localStorage setup we have. Every time we touch our data, we rewrite the entire set of data each time. When you’re working with a “real” database, don’t download the entire database and replace the entire database when small changes are made, that would just be silly. But our data is so small/light here, even if there were a few hundred to-dos, it’s not that big of a deal. But certainly a real database is a cleaner and more scalable approach. We could have also architected things differently, making each to-do a unique key in localStorage, but that didn’t have the Array characteristic we wanted, and just feels kinda sloppy to me.
+
+See that we’re calling our `buildUI()` function after making the data change as well, ensuring our UI is in sync with our data.
+
+## Extra Functionality
+
+- We need to be able to view completed to-dos (and be able to delete them entirely)
+- We need to be able edit to-dos.
+
+## Editing To-Dos
+
+The interaction we decided on for editing is to double-click the todo. This will turn the to-do, in place, into an editable input. Then you hit enter (e.g. submit) or leave the input (e.g. blur) and it will save the changes.
+
+We can use a bit of event delegation to set up this event:
+
+```js
+list.addEventListener("dblclick", (event) => {
+  const listItem = event.target.closest("li");
+
+  // If already editing, let it be.
+  if (listItem.classList.contains("editing")) return;
+
+  listItem.classList.add("editing");
+
+  // Do editing.
+});
+```
+
+Now anywhere you double-click on the list will set the relevant list item into “editing mode”, here indicated by just adding a class we can style against, like hide the existing text.
+
+More importantly, we need to insert some new HTML turning the text into an editable input. We can use a template literal of a <form> to inject as needed, like so:
+
+```js
+list.addEventListener("dblclick", (event) => {
+  const listItem = event.target.closest("li");
+
+  // If already editing, let it be.
+  if (listItem.classList.contains("editing")) return;
+
+  listItem.classList.add("editing");
+  const textItem = listItem.querySelector(".text");
+  listItem.insertAdjacentHTML(
+    "beforeend",
+    `<form onsubmit="updateTodo(event);" class="form-edit">
+       <input onblur="updateTodo(event);" type="text" class="input-edit" value="${textItem.textContent}">
+     </form>`
+  );
+});
+
+```
+
+That calls an updateTodo() event we’ll have to write. But first, let’s make sure we focus the input and put the cursor at the end. Just a bit of nice UX right?
+
+```js
+list.addEventListener("dblclick", (event) => {
+  const listItem = event.target.closest("li");
+
+  // If already editing, let it be.
+  if (listItem.classList.contains("editing")) return;
+
+  listItem.classList.add("editing");
+  const textItem = listItem.querySelector(".text");
+  listItem.insertAdjacentHTML(
+    "beforeend",
+    `<form onsubmit="updateTodo(event);" class="form-edit"><input onblur="updateTodo(event);" type="text" class="input-edit" value="${textItem.textContent}"></form>`
+  );
+
+  const input = listItem.querySelector(".input-edit");
+  input.focus();
+
+  // put cursor at end of input
+  input.setSelectionRange(input.value.length, input.value.length);
+});
+
+```
+
+Updating the to-do is pretty straightforward. We get our hands on the new text, update it in the DOM, toggle the editing class, and write the data back to localStorage. It looks like a lot of lines, but a lot of it is just getting our hands on DOM elements and basic manipulation.
+
+```js
+function updateTodo(event) {
+  event.preventDefault();
+  const listItem = event.target.closest("li");
+  const textItem = listItem.querySelector(".text");
+  const inputItem = listItem.querySelector(".input-edit");
+  const form = listItem.querySelector(".form-edit");
+  textItem.textContent = inputItem.value;
+  listItem.classList.remove("editing");
+  form.remove();
+  TODOs = TODOs.map((todo) => {
+    if (todo.id === listItem.id) {
+      todo.title = inputItem.value;
+    }
+    return todo;
+  });
+  localStorage["data"] = JSON.stringify(TODOs);
+}
+```
+
+## Viewing Completed To-Dos
+
+Before this, we could delete a to-do, but that was it. Even though our data structure was set up to have a complete attribute that could change, all we did was filter out the completed ones entirely from the data.
+
+Here’s what that data structure is like:
+
+```js
+{
+  title: `text of to-do`,
+  complete: false,
+  id: self.crypto.randomUUID()
+}
+```
+
+Now, when we check that checkbox in the UI to complete a to-do, we need to:
+
+- Set complete to true if the list item is in the active list
+- Remove the list item entirely if the to-do is already in the completed list
+- 
+We’ll update our function to be called toggleTodo and do it like this:
+
+```js
+function toggleTodo(event) {
+  const listItem = event.target.parentElement;
+  // Trigger complete animation
+  listItem.classList.toggle("complete");
+  setTimeout(() => {
+    // list item is already complete, remove it
+    if (listItem.dataset.complete === "true") {
+      TODOs = TODOs.filter((todo) => !todo.complete);
+    } else {
+      // list item is just being set to complete now
+      TODOs.forEach((todo) => {
+        if (todo.id === listItem.id) {
+          todo.complete = !todo.complete;
+        }
+      });
+    }
+
+    localStorage["data"] = JSON.stringify(TODOs);
+
+    if (!document.startViewTransition) {
+      buildUI();
+    } else {
+      document.startViewTransition(() => {
+        buildUI();
+      });
+    }
+  }, 1000);
+}
+```
+
+This isn’t a big change from last time, just one little fork in the logic that either removes it or updates the data.
+
+Now we need a control though to decide if we’re looking at the active to-dos or the completed ones. Let’s make that control in HTML:
+
+```html
+<div class="todo-type-toggles">
+  <button aria-pressed="true">Active</button>
+  <button>Completed</button>
+</div>
+```
+
+Now when you press the buttons, we’ll swap the state and re-build the UI accordingly:
+
+```js
+const toggles = document.querySelectorAll(".todo-type-toggles > button");
+
+toggles.forEach((toggle) => {
+  toggle.addEventListener("click", (event) => {
+    toggles.forEach((toggle) => {
+      toggle.setAttribute("aria-pressed", false);
+    });
+    toggle.setAttribute("aria-pressed", true);
+
+    if (toggle.textContent === states.ACTIVE) {
+      buildUI(states.ACTIVE);
+    } else {
+      buildUI(states.COMPLETED);
+    }
+  });
+});
+```
+
+Now I’m calling buildUI() with a param to declare which type I want to see. I like using little ENUM type variables for this just to make sure we don’t do typos.
+
+```js
+const states = {
+  ACTIVE: "Active",
+  COMPLETED: "Completed"
+};
+```
+
+Then we update the function to display one or the other…
+
+```js
+function buildUI(state) {
+  let HTML = ``;
+  let viewTODOs = [];
+
+  if (state === states.COMPLETED) {
+    viewTODOs = TODOs.filter((todo) => todo.complete);
+  } else {
+    viewTODOs = TODOs.filter((todo) => !todo.complete);
+  }
+
+  if (viewTODOs.length === 0) {
+    HTML = `<li class="empty">Nothing to do!</li>`;
+  }
+
+  // Loop over the viewTODOs and build HTML to insert, exactly as before.
+}
+```
+
+This gives us an empty state as well.
+
+Perhaps more back-endy readers will be like “is this dude not sanitizing data before it goes to data storage?” and that would be a smart observation. We should probably be sanitizing the HTML. But for now, the only person you can pwn with this is yourself, so not a massive deal.
+
